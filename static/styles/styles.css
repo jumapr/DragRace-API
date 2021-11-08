@@ -1,0 +1,25 @@
+body{
+ font-family: 'Raleway', sans-serif;
+ -webkit-font-smoothing: antialiased;
+  color:#212121;
+}
+
+h2 {
+ color: #d73d6c;
+}
+
+code {
+  font-size:120%;
+  font-weight:500;
+}
+
+
+footer {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  background-color: #43658b;
+  color: white;
+  text-align: center;
+}

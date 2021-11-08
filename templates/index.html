@@ -4,9 +4,32 @@
     <meta charset="UTF-8">
     <title>Drag Race API</title>
     <link rel="shortcut icon" type="image/jpg" href="https://m.media-amazon.com/images/I/41XZAX8ffsL._AC_.jpg"/>
-...
+    <link rel="stylesheet" href="../static/styles/styles.css">
 </head>
 <body>
-
+    <h1>Welcome to the RuPaul's Drag Race API!</h1>
+        <p>This API returns data about contestants on RuPaul's Drag Race Seasons 1-13. All Stars and other franchises
+            are not yet included. Data includes contestants' name, age, hometown, outcome in the competition, and
+            season.</p>
+        <h2>/all</h2>
+            <p>This API returns the data for all contestants.</p>
+            <h3>Example (click for JSON output)</h3>
+                <a href="http://127.0.0.1:5000/all">http://127.0.0.1:5000/all</a>
+        <h2>/search</h2>
+            <p>The search route allows searching for data on contestants matching one or more of the available
+                parameters.</p>
+            <h3>API Parameters</h3>
+                <h4>Optional: <code>name</code></h4>
+                    <p>Name of a contestant. Partial matches are included.</p>
+                <h4>Optional: <code>outcome</code></h4>
+                    <p>The outcome, or place of a contestant. Valid options are Winner, Runner-Up, Disqualified and
+                        places 3rd through 15th. Both ordinal numbers (e.g. 4th) and cardinal numbers (e.g. 4) are
+                        accepted.</p>
+                <h4>Optional: <code>season</code></h4>
+                <p>Season of the television show. Valid options are 1 through 13.</p>
+            <h3>Examples (click for JSON output)</h3>
+                <p><a href="http://127.0.0.1:5000/search?name=Monsoon">http://127.0.0.1:5000/search?name=Monsoon</a></p>
+                <p><a href="http://127.0.0.1:5000/search?season=4">http://127.0.0.1:5000/search?season=4</a></p>
+                <p><a href="http://127.0.0.1:5000/search?season=4">http://127.0.0.1:5000/search?outcome=5th</a></p>
 </body>
 </html>

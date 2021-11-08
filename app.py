@@ -6,7 +6,7 @@ app = Flask(__name__)
 db = Database()
 
 # success and error messages for JSON responses
-errors = ({"Not Found:": "Sorry, we couldn't find that contestant."},)
+errors = ({"Not Found:": "Sorry, we couldn't find any contestants matching that criteria."},)
 
 
 def make_contestant_dict(tup: Tuple) -> dict:
@@ -42,7 +42,9 @@ def search_contestants():
     name = request.args.get('name')
     outcome = request.args.get('outcome')
     season = request.args.get('season')
-    matching_contestants = db.search_contestants(name, outcome, season)
+    min_age = request.args.get('minage')
+    max_age = request.args.get('maxage')
+    matching_contestants = db.search_contestants(name, outcome, season, min_age, max_age)
     if matching_contestants:
         matching_contestants_list = [make_contestant_dict(contestant) for contestant in matching_contestants]
         return jsonify(contestants=matching_contestants_list)

@@ -93,12 +93,15 @@ class Database:
         conn.close()
         return all_contestants
 
-    def search_contestants(self, name: Union[str, None], outcome: Union[str, None], season: Union[str, None]):
+    def search_contestants(self, name: Union[str, None], outcome: Union[str, None], season: Union[str, None],
+                           min_age: Union[str, None], max_age: Union[str, None]):
         """
         Searches for contestants matching specific criteria. One or more of the parameters may be None
         :param name: name of contestant, which may be partial
         :param outcome: outcome to search for (e.g. 4th for 4th place)
         :param season: season to search for
+        :param min_age: minimum age of contestants to search for
+        :param max_age: maximum age of contestants to search for
         :return: List of Tuples, where each Tuple contains the data for one contestant
         """
         conditions = []
@@ -107,22 +110,30 @@ class Database:
             conditions.append('Contestants.name LIKE ?')
             condition_values.append('%' + name + '%')
         if outcome:
-            # TODO: update to handle multiple possible outcomes for ties
-            outcomes = process_outcome_search(outcome)
+            processed_outcome = process_outcome_search(outcome)
             # can't search for exact match in case of ties (e.g. 13th/14th place)
-            conditions.append('Outcomes.outcome=?')
-            condition_values.append(outcomes[0])
+            conditions.append('(Outcomes.outcome LIKE ? OR Outcomes.outcome LIKE ?)')
+            condition_values.append(processed_outcome + '%')
+            condition_values.append('%' + '/' + processed_outcome)
+        if min_age:
+            int_min_age = validate_integer_input(min_age)
+            if int_min_age:
+                conditions.append('Contestants.age >=?')
+                condition_values.append(int_min_age)
+        if max_age:
+            int_max_age = validate_integer_input(max_age)
+            if int_max_age:
+                conditions.append('Contestants.age <=?')
+                condition_values.append(int_max_age)
         if season:
-            int_season = None
-            try:
-                int_season = int(season)
-            except ValueError:
-                print('invalid season')
+            int_season = validate_integer_input(season)
             if int_season:
                 conditions.append('Contestants.season=?')
                 condition_values.append(int_season)
         conditions = " AND ".join(conditions)
         condition_values = tuple(condition_values)
+        print(self.select_all_and_join + ' WHERE ' + conditions)
+        print(condition_values)
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         matching_contestants = cursor.execute(self.select_all_and_join + ' WHERE ' + conditions, condition_values).fetchall()
@@ -132,34 +143,28 @@ class Database:
 
 def process_outcome_search(searched_outcome: str) -> str:
     """
-    Processes a provided parameter for outcome to match the format used in the database
+    Processes a provided parameter for outcome. Particularly, handles non-cardinal number outcomes: Winner, Runner-Up,
+    and Disqualified.
     :param searched_outcome: user-provided value for `outcome` to search
-    :return: processed list of strings for `outcome`, to match database format
+    :return: processed string for `outcome`, to match database format
     """
-    # create list of possible outcomes that are in the database
-    outcomes = ["Winner", "Runner-Up", "3rd"]
-    for i in range(4, 16):
-        outcomes.append(str(i) + "th")
-    processed_outcomes = None
+    if searched_outcome[0].isalpha():
+        searched_outcome = searched_outcome.title()
+    elif searched_outcome in ('1', '1st'):
+        searched_outcome = 'Winner'
+    elif searched_outcome in ('2', '2nd'):
+        searched_outcome = 'Runner-Up'
+    return searched_outcome
+
+
+def validate_integer_input(parameter: str) -> Union[None, str]:
+    """
+    Validates integer input
+    :param parameter:
+    :return:
+    """
     try:
-        # handle case where user searches plain number (e.g. '4')
-        outcome_int = int(searched_outcome)
+        result = int(parameter)
     except ValueError:
-        try:
-            # handle case where user searches ordinal number (e.g. '4th')
-            outcome_int = outcomes.index(searched_outcome) + 1
-        except ValueError:
-            if searched_outcome == '1st':
-                outcome_int = 1
-            elif searched_outcome == '2nd':
-                outcome_int = 2
-            else:
-                outcome_int = None
-    if outcome_int and outcome_int < 16:
-        processed_outcomes = [outcomes[outcome_int-1]]
-        # add the possibilities for ties with the place before or after
-        if outcome_int >= 4:
-            processed_outcomes.append(outcomes[outcome_int-2] + "/" + outcomes[outcome_int-1])
-        if 3 <= outcome_int <= 14:
-            processed_outcomes.append(outcomes[outcome_int-1] + "/" + outcomes[outcome_int])
-    return processed_outcomes
+        result = None
+    return result

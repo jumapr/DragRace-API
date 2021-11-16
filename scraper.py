@@ -58,7 +58,8 @@ class Episode:
         self.title = cells[1].text.rstrip()
         date_raw = cells[2].text.rstrip()
         start = date_raw.find('(')
-        self.date = date_raw[start + 1:start + 10]
+        self.date = date_raw[start + 1:start + 11]
+        assert(len(self.date) == 10)
         print(self.number, self.title, self.date)
         challenge_winner = detailed_info_row.find(style='color:royalblue')
         if challenge_winner:
@@ -80,7 +81,7 @@ def get_contestant_data():
     Scrapes the contestant data from wikipedia
     """
     # get contestant table from Wikipedia
-    file_name = 'data/constestants.csv'
+    file_name = 'data/constestants2.csv'
     contestants_url = "https://en.wikipedia.org/wiki/List_of_RuPaul%27s_Drag_Race_contestants"
     response = requests.get(contestants_url)
     soup = BeautifulSoup(response.text, 'html.parser')

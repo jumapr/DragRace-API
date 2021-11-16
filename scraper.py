@@ -38,6 +38,8 @@ class Season:
 
     def write_episode_data(self):
         with open('data/episodes.csv', 'a') as fh:
+            # write header row
+            fh.write('number,title,date,winner,main_challenge,season\n')
             for episode in self.episodes:
                 line = ",".join([str(episode.number), episode.title, episode.date, episode.winner,
                                  episode.main_challenge, str(self.season_num)]) + '\n'
@@ -85,6 +87,8 @@ def get_contestant_data():
     contestant_table = soup.find('tbody')
 
     with open(file_name, mode='w') as fh:
+        # write header row
+        fh.write('name,age,hometown,outcome,season\n')
         # get contestant data
         current_season = 'Season 1'
         for table_row in contestant_table.find_all('tr'):

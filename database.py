@@ -6,7 +6,8 @@ from typing import List, Tuple, Union
 class Database:
     def __init__(self):
         self.db_name = 'drag_race.db'
-        self.df = pd.DataFrame(pd.read_csv('data/contestants.csv'))
+        self.contestant_df = pd.DataFrame(pd.read_csv('data/contestants.csv'))
+        self.episode_df = pd.DataFrame(pd.read_csv('data/episodes.csv'))
         self.select_all_and_join = '''SELECT Contestants.name, Contestants.age, Hometowns.hometown, Outcomes.outcome,
                         Contestants.season FROM Contestants JOIN Hometowns JOIN Outcomes 
                         ON (Contestants.hometown_id = Hometowns.id AND Contestants.outcome_id = Outcomes.id)'''
@@ -19,6 +20,7 @@ class Database:
         self.create_hometown_table()
         self.create_outcome_table()
         self.create_contestant_table()
+        self.create_episode_table()
 
     def create_hometown_table(self):
         """
@@ -28,11 +30,11 @@ class Database:
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         cursor.execute('''CREATE TABLE IF NOT EXISTS Hometowns (
-                        id integer primary key,
-                        hometown text)
+                        id INTEGER PRIMARY KEY,
+                        hometown TEXT)
                         ''')
         # insert hometowns into table
-        hometowns = self.df['hometown'].unique()
+        hometowns = self.contestant_df['hometown'].unique()
         for hometown in hometowns:
             cursor.execute('INSERT INTO Hometowns (hometown) VALUES(?)', (hometown,))
         conn.commit()
@@ -45,11 +47,11 @@ class Database:
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         cursor.execute('''CREATE TABLE IF NOT EXISTS Outcomes (
-                        id integer primary key,
-                        outcome text)
+                        id INTEGER PRIMARY KEY,
+                        outcome TEXT NOT NULL)
                         ''')
         # insert outcomes into table
-        outcomes = self.df['outcome'].unique()
+        outcomes = self.contestant_df['outcome'].unique()
         for outcome in outcomes:
             cursor.execute('INSERT INTO Outcomes (outcome) VALUES(?)', (outcome,))
         conn.commit()
@@ -63,15 +65,17 @@ class Database:
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         cursor.execute('''CREATE TABLE IF NOT EXISTS Contestants (
-                       id integer primary key,
-                       name text,
-                       age integer,
-                       hometown_id integer,
-                       outcome_id integer,
-                       season integer)
+                       id INTEGER PRIMARY KEY,
+                       name TEXT NOT NULL,
+                       age INTEGER NOT NULL,
+                       hometown_id INTEGER NOT NULL,
+                       outcome_id INTEGER NOT NULL,
+                       season INTEGER NOT NULL,
+                       FOREIGN KEY (hometown_id) REFERENCES Hometowns (id),
+                       FOREIGN KEY (outcome_id) REFERENCES Outcomes (id))
                        ''')
         # insert data from CSV into table
-        for row in self.df.itertuples():
+        for row in self.contestant_df.itertuples():
             # find hometown ID
             hometown_id = cursor.execute('SELECT id FROM Hometowns WHERE hometown=?', (row.hometown,)).fetchone()[0]
             # find outcome ID
@@ -79,6 +83,35 @@ class Database:
             cursor.execute('INSERT INTO Contestants (name, age, hometown_id, outcome_id, season) VALUES(?, ?, ?, ?, ?)',
                            (row.name, int(row.age), hometown_id, outcome_id, int(row.season))
                            )
+        conn.commit()
+        conn.close()
+
+    def create_episode_table(self):
+        """
+        Gets data from episodes.csv and creates Episodes table in the database
+        """
+        # create table
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute('''CREATE TABLE IF NOT EXISTS Episodes (
+                       id INTEGER PRIMARY KEY,
+                       number INTEGER NOT NULL,
+                       title TEXT NOT NULL,
+                       date TEXT NOT NULL,
+                       winner_id INTEGER,
+                       main_challenge TEXT,
+                       season INTEGER NOT NULL,
+                       FOREIGN KEY (winner_id) REFERENCES Contestants (id))
+                       ''')
+        # insert episodes into table
+        for row in self.episode_df.itertuples():
+            winner_id = cursor.execute('SELECT id FROM Contestants WHERE name=?', (row.winner,)).fetchone()
+            if winner_id:
+                winner_id = winner_id[0]
+            main_challenge = None if row.main_challenge == 'None' else row.main_challenge
+            cursor.execute('''INSERT INTO Episodes (number, title, date, winner_id, main_challenge, season) 
+                           VALUES(?, ?, ?, ?, ?, ?)''',
+                           (int(row.number), row.title, row.date, winner_id, main_challenge, int(row.season)))
         conn.commit()
         conn.close()
 
@@ -168,3 +201,7 @@ def validate_integer_input(parameter: str) -> Union[None, str]:
     except ValueError:
         result = None
     return result
+
+
+database = Database()
+database.create_database()

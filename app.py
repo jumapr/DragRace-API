@@ -1,21 +1,15 @@
+import inspect
+
+import refactor
 from flask import Flask, jsonify, render_template, request
-from typing import Tuple
 from database import Database
 
 app = Flask(__name__)
 db = Database()
 
-# success and error messages for JSON responses
-errors = ({"Not Found:": "Sorry, we couldn't find any contestants matching that criteria."},)
-
-
-def make_contestant_dict(tup: Tuple) -> dict:
-    """
-    Converts tuple of contestant data to dictionary
-    :param tup: tuple of contestant data, consisting of name, age, hometown, and outcome
-    :return: dictionary of contestant data
-    """
-    return {"name": tup[0], "age": tup[1], "hometown": tup[2], "outcome": tup[3], "season": tup[4]}
+# error messages for JSON responses
+errors = {'contestants': {"Not Found:": "Sorry, we couldn't find any contestants matching that criteria."},
+          'episodes': {"Not Found:": "Sorry, we couldn't find any episodes matching that criteria."}}
 
 
 @app.route("/")
@@ -23,34 +17,26 @@ def home():
     return render_template("index.html")
 
 
-@app.route('/all')
-def get_all_contestants():
+@app.route('/all/<table>')
+def get_all(table: str):
     """
-    Get all contestants from the database
-    :return: JSON data for all contestants
+    Get all data from a given table in the database
+    :return: JSON data for table
     """
-    all_contestants_dicts = [make_contestant_dict(contestant) for contestant in db.select_all()]
-    return jsonify(contestants=all_contestants_dicts)
+    return jsonify(contestants=refactor.make_list(table, db.select_all(table)))
 
 
-@app.route('/search')
-def search_contestants():
-    """
-    Search for specific contestant(s)
-    :return: JSON data for specific contestant
-    """
-    name = request.args.get('name')
-    outcome = request.args.get('outcome')
-    season = request.args.get('season')
-    min_age = request.args.get('minage')
-    max_age = request.args.get('maxage')
-    matching_contestants = db.search_contestants(name, outcome, season, min_age, max_age)
-    if matching_contestants:
-        matching_contestants_list = [make_contestant_dict(contestant) for contestant in matching_contestants]
-        return jsonify(contestants=matching_contestants_list)
-    # if it's not in the database, return a Not Found error
+@app.route('/search/<table>')
+def search(table: str):
+    search_funcs = {'contestants': db.search_contestants, 'episodes': db.search_episodes}
+    search_params = {'contestants': tuple(inspect.getfullargspec(search_funcs['contestants'])[0][1:]),
+                     'episodes': tuple(inspect.getfullargspec(search_funcs['episodes'])[0][1:])}
+    args = [request.args.get(param) for param in search_params[table]]
+    search_result = search_funcs[table](*args)
+    if search_result:
+        return jsonify({table: refactor.make_list(table, search_result)})
     else:
-        return jsonify(error=errors[0])
+        return jsonify(error=errors[table])
 
 
 if __name__ == '__main__':

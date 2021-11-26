@@ -1,6 +1,7 @@
 import pandas as pd
 import sqlite3
 from typing import List, Tuple, Union
+from input_validators import validate_integer_input, is_valid_date, process_outcome_search
 
 
 class Database:
@@ -8,9 +9,12 @@ class Database:
         self.db_name = 'drag_race.db'
         self.contestant_df = pd.DataFrame(pd.read_csv('data/contestants.csv'))
         self.episode_df = pd.DataFrame(pd.read_csv('data/episodes.csv'))
-        self.select_all_and_join = '''SELECT Contestants.name, Contestants.age, Hometowns.hometown, Outcomes.outcome,
-                        Contestants.season FROM Contestants JOIN Hometowns JOIN Outcomes 
+        self.contestants_select_and_join = '''SELECT Contestants.name, Contestants.age, Hometowns.hometown, 
+                        Outcomes.outcome, Contestants.season FROM Contestants JOIN Hometowns JOIN Outcomes 
                         ON (Contestants.hometown_id = Hometowns.id AND Contestants.outcome_id = Outcomes.id)'''
+        self.episodes_select_and_join = '''SELECT Episodes.number, Episodes.title, Episodes.date, Contestants.name, 
+                        Episodes.main_challenge, Episodes.season FROM Episodes 
+                        LEFT JOIN Contestants ON Episodes.winner_id = Contestants.id'''
 
     def create_database(self):
         """
@@ -115,16 +119,23 @@ class Database:
         conn.commit()
         conn.close()
 
-    def select_all(self) -> List[Tuple]:
+    def select_all(self, table: str) -> List[Tuple]:
         """
-        Gets data from all contestants from the database
-        :return: List with tuple for each contestant
+        Gets all items from a specified table in the database
+        :param: table to get all items from
+        :return: List with tuple for each item
         """
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
-        all_contestants = cursor.execute(self.select_all_and_join).fetchall()
+        if table == 'contestants':
+            sql_query = self.contestants_select_and_join
+        elif table == 'episodes':
+            sql_query = self.episodes_select_and_join
+        else:
+            raise KeyError("No such table")
+        all_items = cursor.execute(sql_query).fetchall()
         conn.close()
-        return all_contestants
+        return all_items
 
     def search_contestants(self, name: Union[str, None], outcome: Union[str, None], season: Union[str, None],
                            min_age: Union[str, None], max_age: Union[str, None]):
@@ -132,7 +143,7 @@ class Database:
         Searches for contestants matching specific criteria. One or more of the parameters may be None
         :param name: name of contestant, which may be partial
         :param outcome: outcome to search for (e.g. 4th for 4th place)
-        :param season: season to search for
+        :param season: season to search for; valid seasons are 1-13
         :param min_age: minimum age of contestants to search for
         :param max_age: maximum age of contestants to search for
         :return: List of Tuples, where each Tuple contains the data for one contestant
@@ -163,45 +174,47 @@ class Database:
             if int_season:
                 conditions.append('Contestants.season=?')
                 condition_values.append(int_season)
-        conditions = " AND ".join(conditions)
-        condition_values = tuple(condition_values)
-        print(self.select_all_and_join + ' WHERE ' + conditions)
-        print(condition_values)
-        conn = sqlite3.connect(self.db_name)
-        cursor = conn.cursor()
-        matching_contestants = cursor.execute(self.select_all_and_join + ' WHERE ' + conditions, condition_values).fetchall()
-        conn.close()
+        if conditions:
+            conditions = " AND ".join(conditions)
+            condition_values = tuple(condition_values)
+            conn = sqlite3.connect(self.db_name)
+            cursor = conn.cursor()
+            matching_contestants = cursor.execute(self.contestants_select_and_join + ' WHERE ' + conditions,
+                                                  condition_values).fetchall()
+            conn.close()
+        else:
+            matching_contestants = None
         return matching_contestants
 
-
-def process_outcome_search(searched_outcome: str) -> str:
-    """
-    Processes a provided parameter for outcome. Particularly, handles non-cardinal number outcomes: Winner, Runner-Up,
-    and Disqualified.
-    :param searched_outcome: user-provided value for `outcome` to search
-    :return: processed string for `outcome`, to match database format
-    """
-    if searched_outcome[0].isalpha():
-        searched_outcome = searched_outcome.title()
-    elif searched_outcome in ('1', '1st'):
-        searched_outcome = 'Winner'
-    elif searched_outcome in ('2', '2nd'):
-        searched_outcome = 'Runner-Up'
-    return searched_outcome
-
-
-def validate_integer_input(parameter: str) -> Union[None, str]:
-    """
-    Validates integer input
-    :param parameter:
-    :return:
-    """
-    try:
-        result = int(parameter)
-    except ValueError:
-        result = None
-    return result
-
-
-database = Database()
-database.create_database()
+    def search_episodes(self, season: Union[str, None], after: Union[str, None], before: Union[str, None]):
+        """
+        Searches Episodes table for episodes matching search criteria
+        :param season: season to search for; valid seasons are 1-13
+        :param after: date to get episodes that aired after
+        :param before: date to get episodes that aired before
+        :return: List of Tuples, where each Tuple contains the data for one contestant
+        """
+        conditions = []
+        condition_values = []
+        if season:
+            int_season = validate_integer_input(season)
+            if int_season:
+                conditions.append('Episodes.season=?')
+                condition_values.append(int_season)
+        if after and is_valid_date(after):
+            conditions.append('Episodes.date > DATE(?)')
+            condition_values.append(after)
+        if before and is_valid_date(before):
+            conditions.append('Episodes.date < DATE(?)')
+            condition_values.append(before)
+        if conditions:
+            conditions = " AND ".join(conditions)
+            condition_values = tuple(condition_values)
+            conn = sqlite3.connect(self.db_name)
+            cursor = conn.cursor()
+            matching_episodes = cursor.execute(self.episodes_select_and_join + ' WHERE ' + conditions,
+                                               condition_values).fetchall()
+            conn.close()
+        else:
+            matching_episodes = None
+        return matching_episodes

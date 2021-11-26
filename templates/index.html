@@ -8,14 +8,16 @@
 </head>
 <body>
     <h1>Welcome to the RuPaul's Drag Race API!</h1>
-        <p>This API returns data about contestants on RuPaul's Drag Race Seasons 1-13. All Stars and other franchises
-            are not yet included. Data includes contestants' name, age, hometown, outcome in the competition, and
-            season.</p>
-        <h2>/all</h2>
+        <p>This API returns data about contestants and episodes on RuPaul's Drag Race Seasons 1-13. All Stars and other
+            franchises are not yet included. Contestant data includes contestants' name, age, hometown, outcome in the
+            competition, and season. Episode data includes air date, main challenge description, number (within the
+            season), episode title, and episode winner. Main challenge and winner are null if the episode did not
+            include a main challenge (e.g. reunion episodes).</p>
+        <h2>/contestants/all</h2>
             <p>This API returns the data for all contestants.</p>
             <h3>Example (click for JSON output)</h3>
-                <a href="http://127.0.0.1:5000/all">http://127.0.0.1:5000/all</a>
-        <h2>/search</h2>
+                <a href="http://127.0.0.1:5000/all/contestants">http://127.0.0.1:5000/all/contestants</a>
+        <h2>/contestants/search</h2>
             <p>The search route allows searching for data on contestants matching one or more of the available
                 parameters.</p>
             <h3>API Parameters</h3>
@@ -33,9 +35,26 @@
                     <p>Maximum age of contestants to search for. The oldest contestant on the show thus far was Charlie
                     Hides at age 52.</p>
             <h3>Examples (click for JSON output)</h3>
-                <p><a href="http://127.0.0.1:5000/search?name=Monsoon">http://127.0.0.1:5000/search?name=Monsoon</a></p>
-                <p><a href="http://127.0.0.1:5000/search?season=4">http://127.0.0.1:5000/search?season=4</a></p>
-                <p><a href="http://127.0.0.1:5000/search?season=4">http://127.0.0.1:5000/search?outcome=5th</a></p>
+                <p><a href="http://127.0.0.1:5000/search/contestants?name=Monsoon">http://127.0.0.1:5000/search/contestants?name=Monsoon</a></p>
+                <p><a href="http://127.0.0.1:5000/search/contestants?season=4">http://127.0.0.1:5000/search/contestants?season=4</a></p>
+                <p><a href="http://127.0.0.1:5000/search/contestants?outcome=5th">http://127.0.0.1:5000/search/contestants?outcome=5th</a></p>
+        <h2>/episodes/all</h2>
+            <p>This API returns the data for all episodes.</p>
+            <h3>Example (click for JSON output)</h3>
+                <a href="http://127.0.0.1:5000/all/episodes">http://127.0.0.1:5000/all/episodes</a>
+        <h2>/epsiodes/search</h2>
+            <p>The search route allows searching for data on episodes matching one or more of the available
+                parameters.</p>
+            <h3>API Parameters</h3>
+                <h4>Optional: <code>season</code></h4>
+                    <p>Season of the television show. Valid options are 1 through 13.</p>
+                <h4>Optional: <code>after</code></h4>
+                    <p>Minimum air date of episodes to include. Date must be in YYYY-MM-DD format.</p>
+                <h4>Optional: <code>before</code></h4>
+                    <p>Maximum air date of episodes to include. Date must be in YYYY-MM-DD format.</p>
+            <h3>Examples (click for JSON output)</h3>
+                <p><a href="http://127.0.0.1:5000/search/episodes?season=4">http://127.0.0.1:5000/search/episodes?season=4</a></p>
+                <p><a href="http://127.0.0.1:5000/search/episodes?after=2014-04-07&before=2015-03-02">http://127.0.0.1:5000/search/episodes?after=2014-04-07&before=2015-03-02</a></p>
 </body>
 <footer><p>Copyright 2021 Julia Prisby</p></footer>
 </html>

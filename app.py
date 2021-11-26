@@ -20,17 +20,31 @@ def home():
     return render_template("index.html")
 
 
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+
 @app.route('/all/<table>')
 def get_all(table: str):
     """
     Get all data from a given table in the database
-    :return: JSON data for table
+    :return: JSON response or 404 if invalid table name is provided
     """
+    if table not in search_funcs:
+        abort(404)
     return jsonify(contestants=refactor.make_list(table, db.select_all(table)))
 
 
 @app.route('/search/<table>')
 def search_api(table: str):
+    """
+    Handles search requests to the API
+    :param table: database table - contestants or episodes
+    :return: JSON response or 404 if invalid table name is provided
+    """
+    if table not in search_funcs:
+        abort(404)
     args = [request.args.get(param) for param in search_params[table]]
     return do_search(table, *args)
 
@@ -42,6 +56,8 @@ def form_search(table: str):
     :param table: database table - contestants or episodes
     :return: for "GET" request, renders form template. For "POST" request, returns JSON response
     """
+    if table not in search_funcs:
+        abort(404)
     if request.method == "POST":
         args = [request.form.get(param) for param in search_params[table]]
         return do_search(table, *args)
@@ -53,7 +69,7 @@ def do_search(table, *args):
     Calls the appropriate database search function, based on the table
     :param table: database table - contestants or episodes
     :param args: search parameters to use to supply to the search function
-    :return:
+    :return: JSON response with matching data
     """
     search_result = search_funcs[table](*args)
     if search_result:

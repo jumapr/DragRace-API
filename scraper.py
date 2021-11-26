@@ -1,6 +1,12 @@
 import requests
 from bs4 import BeautifulSoup
 
+episode_file = 'data/episodes1.csv'
+season_file = 'data/seasons.csv'
+file_headers = {'episodes': 'number,title,date,winner,main_challenge,season',
+                'contestants': 'name,age,hometown,outcome,season',
+                'seasons': 'number,winner'}
+
 
 class Franchise:
     def __init__(self, name: str, num_seasons: int, base_url: str):
@@ -9,8 +15,13 @@ class Franchise:
         self.base_url = base_url
 
     def get_season_data(self):
+        with open(episode_file, 'w') as ef:
+            # write header row
+            ef.write(file_headers['episodes'] + '\n')
+        with open(season_file, 'w') as sf:
+            # write header row
+            sf.write(file_headers['seasons'] + '\n')
         for i in range(1, self.num_seasons + 1):
-            print(i)
             season = Season(self.base_url.format(i), i)
             season.write_episode_data()
 
@@ -19,31 +30,42 @@ class Season:
     def __init__(self, url: str, season_num: int):
         self.season_num = season_num
         self.url = url
-        self.episodes = self.get_episode_data()
-        # TODO: add method to get season winner based on style='color:D4AF37'
-        self.winner = None
-
-    def get_episode_data(self) -> list:
-        episode_list = []
         response = requests.get(self.url)
         soup = BeautifulSoup(response.text, 'html.parser')
         episode_table = soup.find('table', class_='wikitable plainrowheaders wikiepisodetable')
-        # episode_table = tables[5]
-        # print(episode_table)
-        basic_info_rows = episode_table.find_all('tr', 'vevent')
-        detailed_info_rows = episode_table.find_all('tr', class_='expand-child')
-        for basic_info_row, detailed_info_row in zip(basic_info_rows, detailed_info_rows):
+        self.basic_info_rows = episode_table.find_all('tr', 'vevent')
+        self.detailed_info_rows = episode_table.find_all('tr', class_='expand-child')
+        self.winner = self.get_season_winner()
+        self.episodes = self.get_episode_data()
+
+    def get_episode_data(self) -> list:
+        episode_list = []
+        for basic_info_row, detailed_info_row in zip(self.basic_info_rows, self.detailed_info_rows):
             episode_list.append(Episode(basic_info_row, detailed_info_row))
         return episode_list
 
     def write_episode_data(self):
-        with open('data/episodes.csv', 'a') as fh:
-            # write header row
-            fh.write('number,title,date,winner,main_challenge,season\n')
+        with open(episode_file, 'a') as fh:
             for episode in self.episodes:
                 line = ",".join([str(episode.number), episode.title, episode.date, episode.winner,
                                  episode.main_challenge, str(self.season_num)]) + '\n'
                 fh.write(line)
+
+    def get_season_winner(self):
+        """
+        Gets season winner from episodes table and writes to file
+        :return: season winner
+        """
+        # TODO: test
+        for detailed_info_row in self.detailed_info_rows:
+            episode_bullets = detailed_info_row.find_all('li')
+            for bullet in episode_bullets:
+                if "Winner of RuPaul's Drag Race Season" in bullet.text:
+                    season_winner = get_string_after_colon(bullet.text)
+                    with open(season_file, 'a') as fh:
+                        line = str(self.season_num) + ',' + season_winner + '\n'
+                        fh.write(line)
+                    return season_winner
 
 
 class Episode:
@@ -89,7 +111,7 @@ def get_contestant_data():
 
     with open(file_name, mode='w') as fh:
         # write header row
-        fh.write('name,age,hometown,outcome,season\n')
+        fh.write(file_headers['contestants'] + '\n')
         # get contestant data
         current_season = 'Season 1'
         for table_row in contestant_table.find_all('tr'):
@@ -126,6 +148,7 @@ def get_string_after_colon(string: str) -> str:
     return processed_string[colon_pos + 1:].strip()
 
 
-drag_race_franchise = Franchise("RuPaul's Drag Race", 13,
-                                'https://en.wikipedia.org/wiki/RuPaul%27s_Drag_Race_(season_{})')
-drag_race_franchise.get_season_data()
+if __name__ == '__main__':
+    drag_race_franchise = Franchise("RuPaul's Drag Race", 13,
+                                    'https://en.wikipedia.org/wiki/RuPaul%27s_Drag_Race_(season_{})')
+    drag_race_franchise.get_season_data()

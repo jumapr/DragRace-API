@@ -5,7 +5,7 @@ from input_validators import validate_integer_input, is_valid_date, process_outc
 from collections import namedtuple
 
 
-SearchParamInfo = SearchParamInfo = namedtuple('SearchParamInfo', ['searched_val', 'condition', 'validator'])
+SearchParamInfo = namedtuple('SearchParamInfo', ['searched_val', 'condition', 'validator'])
 
 
 class Database:
@@ -132,9 +132,9 @@ class Database:
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         if table == 'contestants':
-            sql_query = self.contestants_select_and_join
+            sql_query = self.select_and_join['contestants']
         elif table == 'episodes':
-            sql_query = self.episodes_select_and_join
+            sql_query = self.select_and_join['episodes']
         else:
             raise KeyError("No such table")
         all_items = cursor.execute(sql_query).fetchall()
@@ -217,4 +217,3 @@ class Database:
         else:
             matching = None
         return matching
-

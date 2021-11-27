@@ -19,6 +19,15 @@ def process_outcome_search(searched_outcome: str) -> str:
     return searched_outcome
 
 
+def add_wildcards(string: str) -> str:
+    """
+    Prepends and appends a '%' to the string, which represents a SQL wildcard
+    :param string: string
+    :return: '%' + string + '%'
+    """
+    return '%' + string + '%'
+
+
 def validate_integer_input(parameter: str) -> Union[None, int]:
     """
     Converts string input to integer or returns None if it can't be converted
@@ -32,15 +41,15 @@ def validate_integer_input(parameter: str) -> Union[None, int]:
     return result
 
 
-def is_valid_date(date_str) -> bool:
+def is_valid_date(date_str) -> Union[str, None]:
     """
     Checks if `date_str` is a valid date in format YYYY-MM-DD
     :param date_str: user-input search parameter
-    :return: True if valid, False if no
+    :return: input if valid date, None if not
     """
     try:
-        print(datetime.datetime.strptime(date_str, '%Y-%m-%d'))
-        return True
+        datetime.datetime.strptime(date_str, '%Y-%m-%d')
+        return date_str
     except ValueError:
         print('invalid date')
-        return False
+        return None
